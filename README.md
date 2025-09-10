@@ -5,6 +5,7 @@
 <p align="center">
     <a href="https://pike-rag.azurewebsites.net/">🌐Online Demo</a>
     <a href="https://arxiv.org/abs/2501.11551">📊Technical Report</a>
+    <a href="https://openreview.net/pdf?id=PAjCdkkNaU">📑ICML 2025 Paper</a>
 </p>
 
 [![License](https://img.shields.io/github/license/microsoft/PIKE-RAG)](https://github.com/microsoft/PIKE-RAG/blob/main/LICENSE)
@@ -47,6 +48,7 @@ PIKE-RAG has been tested and significantly improved question answering accuracy 
 
 - 📊 [Technical Report](https://arxiv.org/abs/2501.11551) will illustrate the industrial RAG problem classification, introduce the main components in PIKE-RAG, and show some experimental results in public benchmarks.
 - 🌐 [Online Demo](https://pike-rag.azurewebsites.net/) is a show-case of our Knowledge-Aware decomposition pipeline for L2 RAG task.
+- 📑 [ICML 2025 Paper](https://openreview.net/pdf?id=PAjCdkkNaU) From Complex to Atomic: Enhancing Augmented Generation via Knowledge-Aware Dual Rewriting and Reasoning.
 
 ## Quick Start
 
@@ -78,3 +80,4 @@ trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+

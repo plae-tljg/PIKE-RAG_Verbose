@@ -80,11 +80,16 @@ class GenerationQaParser(BaseContentParser):
             yes_or_no_limit = ""
 
         # Construct reference contexts.
+        print(f"\n[PROMPT_ENCODER] Encoding {len(references)} references into prompt (limit: {context_len_limit} chars)")
         context_if_any = ""
+        used_references = 0
         for context in list(set(references)):
             context_if_any += f"\n{context}\n"
+            used_references += 1
             if len(context_if_any) >= context_len_limit:
+                print(f"  Stopped at {used_references} references due to length limit")
                 break
+        print(f"  Total context length: {len(context_if_any)} chars from {used_references} references")
 
         return content, {
             "yes_or_no_limit": yes_or_no_limit,

@@ -16,7 +16,11 @@ ircot_template = MessageTemplate(
         ("system", "You are a helpful AI assistant good at question-answering."),
         ("user", """
 # Task
-Your task is to output either a continuous reasoning sentence or the final answer to the given question. Four demonstrations would be provided, followed by the question to be answered and the reference context you can refer to.
+Your task is to output either a continuous reasoning sentence or the final answer to the given question. 
+
+IMPORTANT: For complex questions, you should ALWAYS provide multiple short reasoning sentences (ONE sentence each round) to explore the problem step by step. Only output the final answer when you are confident you have gathered sufficient information.
+
+Four demonstrations would be provided, followed by the question to be answered and the reference context you can refer to.
 
 # Demonstration
 Question: When was Neville A. Stanton's employer founded?
@@ -73,14 +77,23 @@ Answer: Yale Herald
 
 # Output Format
 Your output should strictly follow the format below. Make sure your output parsable by json in Python.
+
+CRITICAL RULES:
+1. Each rationale must be ONLY ONE SHORT SENTENCE (under 20 words if possible)
+2. Do incremental reasoning - just add ONE new fact per round
+3. Do NOT combine multiple reasoning steps in one sentence
+4. Do NOT output the complete answer until you have enough information
+
+Format when continuing to reason:
 {{
-    "next_rationale": <The next sentence following to the rationale already have, ONLY one sentence.>,
+    "next_rationale": <ONE SHORT sentence (under 20 words), making only incremental progress>,
     "answer": null
 }}
-or
+
+Format when ready to answer:
 {{
     "next_rationale": null,
-    "answer": <Your answer to the given question>
+    "answer": <Your final answer to the given question>
 }}
 
 # Your Output

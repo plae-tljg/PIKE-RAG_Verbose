@@ -27,6 +27,10 @@ class QaIRCoTWorkflow(QaWorkflow):
         responses: List[str] = []
         final_answer: str = None
         for round in range(self._max_num_question):
+            print(f"\n{'='*80}")
+            print(f"[IRCoT] Round {round + 1}/{self._max_num_question}")
+            print(f"{'='*80}")
+            
             # Retrieve more chunks
             if len(rationales) == 0:
                 query = qa.question
@@ -39,26 +43,56 @@ class QaIRCoTWorkflow(QaWorkflow):
             messages = self._ircot_protocol.process_input(
                 qa.question, rationales=rationales, references=references, is_limit=False,
             )
+            
+            print(f"\n[LLM] Calling LLM to generate rationale or answer...")
             response = self._client.generate_content_with_messages(messages, **self.llm_config)
+            
+            print(f"\n[LLM] Response received:")
+            print(f"{'-'*80}")
+            print(response)
+            print(f"{'-'*80}")
+            
             responses.append(response)
             output_dict = self._ircot_protocol.parse_output(response)
+            
+            print(f"\n[IRCoT] Parsed output:")
+            print(f"  - Has answer: {output_dict['answer'] is not None}")
+            print(f"  - Has next_rationale: {output_dict.get('next_rationale') is not None and output_dict.get('next_rationale') != ''}")
 
             if output_dict["answer"] is not None:
                 final_answer = output_dict["answer"]
+                print(f"\n[IRCoT] Final answer received: {final_answer}")
                 break
             elif isinstance(output_dict["next_rationale"], str):
-                rationales.append(output_dict["next_rationale"])
+                rationale = output_dict["next_rationale"]
+                rationales.append(rationale)
+                print(f"\n[IRCoT] New rationale added: {rationale}")
             else:
+                print(f"\n[IRCoT] No valid output, breaking...")
                 break
 
         if final_answer is None:
+            print(f"\n{'='*80}")
+            print(f"[IRCoT] Final Answer Round")
+            print(f"{'='*80}")
+            
             messages = self._ircot_protocol.process_input(
                 qa.question, rationales=rationales, references=references, is_limit=True,
             )
+            
+            print(f"\n[LLM] Calling LLM for final answer...")
             response = self._client.generate_content_with_messages(messages, **self.llm_config)
+            
+            print(f"\n[LLM] Final answer response:")
+            print(f"{'-'*80}")
+            print(response)
+            print(f"{'-'*80}")
+            
             responses.append(response)
             output_dict = self._ircot_protocol.parse_output(response)
             final_answer = output_dict["answer"]
+            
+            print(f"\n[IRCoT] Final answer: {final_answer}")
 
         return {
             "answer": final_answer,

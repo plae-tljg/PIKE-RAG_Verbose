@@ -286,16 +286,79 @@ class QaWorkflow:
         Here we implement the process of single LLM call w/ or w/o reference retrieved. Re-write this function if you
         want to test more complicated QA process like Multi-Hop QAs.
         """
+        print("\n" + "=" * 80)
+        print(f"QUESTION {question_idx + 1}")
+        print("=" * 80)
+        
+        # Print question details
+        print(f"\n[QUESTION]\n{qa.question}")
+        if isinstance(qa, MultipleChoiceQaData):
+            print("\n[OPTIONS]")
+            for key, option_text in qa.options.items():
+                print(f"{key}: {option_text}")
+        print("=" * 80)
+        
+        # STEP 1: Retrieve relevant chunks
+        print("\n[STEP 1: RETRIEVE RELEVANT CHUNKS]")
+        print("=" * 80)
         reference_chunks: List[str] = self._retriever.retrieve_contents(qa, retrieve_id=f"Q{question_idx:03}")
+        print(f"\n✓ Retrieved {len(reference_chunks)} reference chunks")
+        if reference_chunks:
+            print("\n[RETRIEVED CONTEXTS]")
+            for i, chunk in enumerate(reference_chunks[:3], 1):  # Show first 3 chunks
+                preview = chunk[:200] + "..." if len(chunk) > 200 else chunk
+                print(f"\n--- Chunk {i} (length: {len(chunk)} chars) ---")
+                print(preview)
+            if len(reference_chunks) > 3:
+                print(f"\n... and {len(reference_chunks) - 3} more chunks")
+        print("=" * 80)
+        
+        # STEP 2: Format messages for LLM
+        print("\n[STEP 2: FORMAT MESSAGES FOR LLM]")
+        print("=" * 80)
         messages = self._qa_protocol.process_input(content=qa.question, references=reference_chunks, **qa.as_dict())
-
+        print(f"\n✓ Generated {len(messages)} messages for LLM")
+        print("\nFull formatted messages:")
+        for i, msg in enumerate(messages, 1):
+            print(f"\n--- Message {i} ({msg.get('role', 'unknown')} role) ---")
+            print(msg.get('content', ''))
+            if i < len(messages):
+                print("-" * 80)
+        print("=" * 80)
+        
+        # STEP 3: Call LLM
+        print("\n[STEP 3: CALL LLM]")
+        print("-" * 80)
         response = self._client.generate_content_with_messages(messages, **self.llm_config)
+        print(f"Raw LLM Response:\n{response}")
+        print("-" * 80)
+        
+        # STEP 4: Parse output
+        print("\n[STEP 4: PARSE LLM OUTPUT]")
+        print("=" * 80)
         output_dict: dict = self._qa_protocol.parse_output(response, **qa.as_dict())
+        print(f"\n✓ Successfully parsed output")
+        print(f"Parsed fields: {list(output_dict.keys())}")
+        for key, value in output_dict.items():
+            if key in ['answer', 'mask', 'option', 'rationale', 'thinking']:
+                print(f"\n[{key.upper()}]")
+                print(str(value)[:500] + ("..." if len(str(value)) > 500 else ""))
+        print("=" * 80)
 
         if "response" not in output_dict:
             output_dict["response"] = response
 
         if "reference_chunks" not in output_dict:
             output_dict["reference_chunks"] = reference_chunks
+        
+        # STEP 5: Final result
+        print("\n[STEP 5: FINAL RESULT]")
+        print("=" * 80)
+        print(f"Answer: {output_dict.get('answer', 'N/A')}")
+        if isinstance(qa, MultipleChoiceQaData):
+            print(f"Correct label: {qa.answer_mask_labels}")
+        elif isinstance(qa, GenerationQaData):
+            print(f"Expected answers: {qa.answer_labels}")
+        print("=" * 80 + "\n")
 
         return output_dict

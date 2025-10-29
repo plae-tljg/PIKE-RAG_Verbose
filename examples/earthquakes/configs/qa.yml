@@ -1,0 +1,113 @@
+# Environment Variable Setting
+################################################################################
+dotenv_path: null
+
+
+# Logging Setting
+################################################################################
+log_root_dir: logs/earthquakes/qa
+
+# experiment_name: would be used to create log_dir = log_root_dir/experiment_name/
+experiment_name: qa_with_chunk_reference
+
+# test_jsonl_filename: would be used to create test_jsonl_path = log_dir/test_jsonl_filename;
+#   if set to null, the experiment_name would be used
+test_jsonl_filename: null
+
+# Number of rounds you want to test. min, max, avg. accuracy will be reported if multiple rounds.
+test_rounds: 3
+
+
+# Workflow Setting
+################################################################################
+workflow:
+  module_path: pikerag.workflows.qa
+  class_name: QaWorkflow
+
+
+# Testing Suite Setting
+################################################################################
+test_loading:
+  module: earthquakes.utils
+  name: load_earthquakes_test_suite
+  args: {}
+
+
+# Prompt Setting
+################################################################################
+qa_protocol:
+  module_path: pikerag.prompts.qa
+  # available attr_name: multiple_choice_qa_protocol, multiple_choice_qa_with_reference_protocol
+  attr_name: multiple_choice_qa_with_reference_protocol
+  template_partial:
+    knowledge_domain: earthquakes
+
+
+# LLM Setting
+################################################################################
+llm_client:
+  module_path: pikerag.llm_client
+  # available class_name: AzureMetaLlamaClient, AzureOpenAIClient, HFMetaLlamaClient
+  class_name: QwenClient
+  args: {}
+
+  llm_config:
+    # available model name for AzureOpenAIClient: gpt-4, gpt-35-turbo
+    # available model name for AzureMetaLlamaClient: llama-2-7b-chat-22, llama-2-13b-chat-19, llama-2-70b-chat-19,
+    #                                                meta-llama-3-8b-instruct-4, meta-llama-3-70b-instruct-4
+    # available model name for HuggingFaceMetaLlamaClient: meta-llama/Meta-Llama-3-8B-Instruct, meta-llama/Meta-Llama-3-70B-Instruct
+    model: /home/lkm/Downloads/Qwen2.5-7B-Instruct
+    temperature: 0
+    # enable max_new_tokens when using llama model through gcr, response seems truncated without it
+    # max_new_tokens: 1024
+
+  cache_config:
+    # location_prefix: will be joined with log_dir to generate the full path;
+    #   if set to null, the experiment_name would be used
+    location_prefix: null
+    auto_dump: True
+
+
+# Retriever Setting
+################################################################################
+retriever:
+  module_path: pikerag.knowledge_retrievers
+  class_name: QaChunkRetriever
+  args:
+    retrieve_k: 16
+    retrieve_score_threshold: 0.2
+
+    # Query Setting
+    ############################################################################
+    retrieval_query:
+      module_path: pikerag.knowledge_retrievers.query_parsers
+      func_name: question_plus_options_as_query
+
+    vector_store:
+      collection_name: earthquakes_book
+
+      id_document_loading:
+        module_path: earthquakes.utils
+        func_name: load_ids_and_chunks
+        args:
+          chunk_file_dir: data/earthquakes/chunks
+
+      embedding_setting:
+        args:
+          # Using a general-purpose embedding model for earthquake domain data
+          # BioLORD is biomedical-specific; for general domain, consider alternatives like:
+          # - "BAAI/bge-m3" (multilingual, good for general text)
+          # - "sentence-transformers/all-mpnet-base-v2" (good general-purpose)
+          # - "intfloat/multilingual-e5-base" (multilingual, excellent quality)
+          model_name: "/home/lkm/Downloads/bge-m3"
+          model_kwargs:
+            device: "cuda:0"
+          encode_kwargs:
+            normalize_embeddings: True
+
+
+# Evaluator Setting
+################################################################################
+evaluator:
+  metrics:
+    - ExactMatch

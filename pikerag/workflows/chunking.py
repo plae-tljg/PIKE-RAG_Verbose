@@ -134,7 +134,25 @@ class ChunkingWorkflow:
 
             # Document Splitting
             chunk_docs = self._splitter.transform_documents(docs)
+            
+            print("\n" + "#" * 80)
+            print("# CHUNKING COMPLETE - SUMMARY")
+            print("#" * 80)
+            print(f"\nTotal chunks created: {len(chunk_docs)}")
+            print("\nChunk details:")
+            for i, chunk in enumerate(chunk_docs, 1):
+                print(f"\nChunk {i}:")
+                print(f"  - Content length: {len(chunk.page_content)}")
+                print(f"  - Summary: {chunk.metadata.get('summary', 'N/A')}")
+                print(f"  - Metadata: {chunk.metadata}")
+                if len(chunk.page_content) > 0:
+                    print(f"  - Content preview (first 100 chars): {chunk.page_content[:100]}...")
+            print("#" * 80)
+            print(f"\nWriting chunks to: {output_path}")
+            print("#" * 80 + "\n")
 
             # Dump document chunks to disk.
             with open(output_path, "wb") as fout:
                 pickle.dump(chunk_docs, fout)
+            
+            print(f"✓ Successfully saved {len(chunk_docs)} chunks to {output_path}\n")

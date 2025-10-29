@@ -19,7 +19,7 @@ def meta_as_query(qa: BaseQaData, meta_name: str) -> List[str]:
 
 
 def question_plus_options_as_query(qa: MultipleChoiceQaData) -> List[str]:
-    return "\n".join([qa.question] + list(qa.options.values()))
+    return ["\n".join([qa.question] + list(qa.options.values()))]
 
 
 def question_plus_each_option_as_query(qa: MultipleChoiceQaData) -> List[str]:

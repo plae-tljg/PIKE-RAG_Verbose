@@ -1,0 +1,46 @@
+Great! Based on the Gutenberg book *Earthquakes* by Kaye M. Shedlock and L. C. Pakiser, and your goal to design a multi-step (≥2 rounds of reasoning) question that tests the reasoning capabilities of a model like IRCOT (Iterative Chain-of-Thought) without modifying the source document, here are several brainstormed prompts that go beyond simple factual retrieval.
+
+The book appears to cover:
+- Geological processes behind earthquakes 
+- Seismology fundamentals 
+- Historical earthquake case studies (e.g., New Madrid seismic zone )
+- Risk mitigation and the idea that earthquakes need not be “uncontrollable and unpredictable hazards” 
+
+With that in mind, here are progressively deeper, multi-hop question ideas:
+
+---
+
+### **1. Causal Chain + Policy Implication**
+> "Based on the mechanisms described in *Earthquakes* for how stress accumulates along faults, explain why the New Madrid seismic zone presents a unique challenge for earthquake preparedness in the central United States. Then, using the authors’ view that earthquakes need not be uncontrollable hazards , propose two specific preparedness strategies that would be especially relevant for this region compared to California."
+
+*Why it works*: Requires (1) understanding fault mechanics, (2) contrasting tectonic settings (intraplate vs. plate boundary), (3) recalling New Madrid as a case study , and (4) applying the book’s philosophy on mitigation .
+
+---
+
+### **2. Temporal Reasoning + Uncertainty**
+> "The book discusses historical earthquakes like those in New Madrid (1811–1812). Given the authors’ discussion of recurrence intervals and the limitations of the historical record, how confident should modern planners be in using that 200-year-old event to design building codes today? What additional geological evidence might the authors suggest seeking to reduce that uncertainty?"
+
+*Why it works*: Involves interpreting historical data, understanding probabilistic forecasting, and linking to geological methods (e.g., paleoseismology)—all hinted at in the book’s scientific tone .
+
+---
+
+### **3. Counterfactual + Conceptual Synthesis**
+> "Suppose a major earthquake occurred in an area previously considered aseismic (like the 1811–1812 New Madrid events might have seemed at the time). Using the framework from *Earthquakes*, explain how such an event could still be consistent with plate tectonic theory. Then, discuss how this understanding should influence national seismic monitoring priorities."
+
+*Why it works*: Tests deep conceptual grasp (intraplate quakes ≠ violation of plate tectonics), historical context , and policy reasoning aligned with the book’s proactive stance .
+
+---
+
+### **4. Risk Communication + Public Perception**
+> "The authors argue that earthquakes are not inherently uncontrollable hazards . Yet public perception often treats them as unpredictable acts of nature. Based on the scientific explanations provided in the book, draft a short public advisory that explains how scientific monitoring and building practices can reduce risk—even in regions with infrequent quakes like the central U.S."
+
+*Why it works*: Requires distilling technical content into actionable communication, grounded in the book’s core thesis.
+
+---
+
+These questions all:
+- Use only content plausibly present in the original text (no external facts required),
+- Require ≥2 reasoning steps (e.g., explain → apply, or describe → evaluate → propose),
+- Leverage the book’s unique angles: New Madrid case, mitigation philosophy, scientific basis of seismology.
+
+Would you like me to refine one of these into a full prompt or generate a sample IRCOT-style answer chain?

@@ -55,46 +55,117 @@ class LLMPoweredRecursiveSplitter(TextSplitter):
         self.logger = logger
 
     def _get_first_chunk_summary(self, text: str, **kwargs) -> str:
+        print("\n" + "=" * 80)
+        print("STEP 1: Getting first chunk summary")
+        print("=" * 80)
+        
         # Get the starting part till the end of the first chunk as the content for summary.
         chunks = self._base_splitter.split_text(text)
         first_chunk_start_pos = text.find(chunks[0])
         text_for_summary = text[:first_chunk_start_pos + len(chunks[0])]
+        
+        print(f"\n[INPUT TO FIRST CHUNK SUMMARY]\nText for summary (first {len(chunks[0])} chars):")
+        print("-" * 80)
+        print(text_for_summary[:500] + "..." if len(text_for_summary) > 500 else text_for_summary)
+        print("-" * 80)
 
         # Format the message template.
         messages = self._first_chunk_summary_protocol.process_input(content=text_for_summary, **kwargs)
+        
+        print(f"\n[MESSAGE TO LLM]\n{messages}")
+        print("-" * 80)
 
         # Call client for summary.
         response = self._llm_client.generate_content_with_messages(messages=messages, **self._llm_config)
+        
+        print(f"\n[RESPONSE FROM LLM]\n{response}")
+        print("-" * 80)
 
         # Parse response to get the chunk summary.
-        return self._first_chunk_summary_protocol.parse_output(content=response, **kwargs)
+        summary = self._first_chunk_summary_protocol.parse_output(content=response, **kwargs)
+        
+        print(f"\n[PARSED SUMMARY]\n{summary}")
+        print("=" * 80)
+        
+        return summary
 
     def _resplit_chunk_and_generate_summary(
         self, text: str, chunks: List[str], chunk_summary: str, **kwargs,
     ) -> Tuple[str, str, str, str]:
+        print("\n" + "=" * 80)
+        print("STEP 2: Resplit chunk and generate summaries")
+        print("=" * 80)
+        
         assert len(chunks) >= 2, f"When calling this function, input chunks length should be no less than 2!"
         text_to_resplit = text[:len(chunks[0]) + len(chunks[1])]
+        
+        print(f"\n[INPUT TO RESPLIT]\nText to resplit ({len(text_to_resplit)} chars):")
+        print("-" * 80)
+        print(text_to_resplit[:500] + "..." if len(text_to_resplit) > 500 else text_to_resplit)
+        print("-" * 80)
+        print(f"\nCurrent chunk summary:\n{chunk_summary}")
+        print("-" * 80)
 
         # Format the message template.
         kwargs["summary"] = chunk_summary
         messages = self._chunk_resplit_protocol.process_input(content=text_to_resplit, **kwargs)
+        
+        print(f"\n[MESSAGE TO LLM]\n{messages}")
+        print("-" * 80)
 
         # Call client for summary.
         response = self._llm_client.generate_content_with_messages(messages=messages, **self._llm_config)
+        
+        print(f"\n[RESPONSE FROM LLM]\n{response}")
+        print("-" * 80)
 
         # Parse response to get the chunk summary.
-        return self._chunk_resplit_protocol.parse_output(content=response, **kwargs)
+        result = self._chunk_resplit_protocol.parse_output(content=response, **kwargs)
+        first_chunk, first_chunk_summary, second_chunk_summary, dropped_len = result
+        
+        print("\n[PARSED RESULT]")
+        print(f"- First chunk length: {len(first_chunk)}")
+        print(f"- First chunk summary: {first_chunk_summary}")
+        print(f"- Second chunk summary: {second_chunk_summary}")
+        print(f"- Dropped length: {dropped_len}")
+        if len(first_chunk) > 0:
+            print(f"- First chunk content (first 200 chars):\n{first_chunk[:200]}...")
+        print("=" * 80)
+        
+        return result
 
     def _get_last_chunk_summary(self, chunk: str, chunk_summary: str, **kwargs) -> str:
+        print("\n" + "=" * 80)
+        print("STEP 3: Getting last chunk summary")
+        print("=" * 80)
+        
+        print(f"\n[INPUT TO LAST CHUNK SUMMARY]\nChunk ({len(chunk)} chars):")
+        print("-" * 80)
+        print(chunk[:500] + "..." if len(chunk) > 500 else chunk)
+        print("-" * 80)
+        print(f"\nCurrent chunk summary:\n{chunk_summary}")
+        print("-" * 80)
+        
         # Format the message template.
         kwargs["summary"] = chunk_summary
         messages = self._last_chunk_summary_protocol.process_input(content=chunk, **kwargs)
+        
+        print(f"\n[MESSAGE TO LLM]\n{messages}")
+        print("-" * 80)
 
         # Call client for summary.
         response = self._llm_client.generate_content_with_messages(messages=messages, **self._llm_config)
+        
+        print(f"\n[RESPONSE FROM LLM]\n{response}")
+        print("-" * 80)
 
         # Parse response to get the chunk summary.
-        return self._last_chunk_summary_protocol.parse_output(content=response, **kwargs)
+        summary = self._last_chunk_summary_protocol.parse_output(content=response, **kwargs)
+        
+        print(f"\n[PARSED SUMMARY]\n{summary}")
+        print("=" * 80)
+        
+        return summary
 
     def split_text(self, text: str, metadata: dict) -> List[str]:
         docs = self.create_documents(texts=[text], metadatas=[metadata])
@@ -118,8 +189,16 @@ class LLMPoweredRecursiveSplitter(TextSplitter):
     def split_documents(self, documents: Iterable[Document], **kwargs) -> List[Document]:
         ret_docs: List[Document] = []
         for idx, doc in tqdm(enumerate(documents), desc="Splitting Documents", total=len(documents)):
+            print("\n" + "#" * 80)
+            print(f"# PROCESSING DOCUMENT {idx + 1}")
+            print("#" * 80)
+            
             text = doc.page_content
             metadata = doc.metadata
+
+            print(f"\nDocument metadata: {metadata}")
+            print(f"Document length: {len(text)} characters")
+            print("#" * 80)
 
             text = text.strip()
             chunk_summary = self._get_first_chunk_summary(text, **metadata)
@@ -131,6 +210,12 @@ class LLMPoweredRecursiveSplitter(TextSplitter):
                     chunk_meta = deepcopy(metadata)
                     chunk_meta.update({"summary": chunk_summary})
                     ret_docs.append(Document(page_content=chunks[0], metadata=chunk_meta))
+                    
+                    print(f"\n[FINAL CHUNK #{len(ret_docs)} - LAST CHUNK]")
+                    print(f"Length: {len(chunks[0])}")
+                    print(f"Summary: {chunk_summary}")
+                    print(f"Metadata: {chunk_meta}")
+                    print("=" * 80)
 
                     if self.logger is not None:
                         self.logger.debug(
@@ -150,7 +235,7 @@ class LLMPoweredRecursiveSplitter(TextSplitter):
 
                     if len(chunk) == 0:
                         if self.logger is not None:
-                            self.logger.debug(msg=f"Skip empty re-split first chunk", tag=self.NAME)
+                            self.logger.debug(msg="Skip empty re-split first chunk", tag=self.NAME)
 
                         chunk_summary = next_summary
                         chunks = [chunks[0] + chunks[1]] + chunks[2:]
@@ -160,6 +245,12 @@ class LLMPoweredRecursiveSplitter(TextSplitter):
                     chunk_meta = deepcopy(metadata)
                     chunk_meta.update({"summary": chunk_summary})
                     ret_docs.append(Document(page_content=chunk, metadata=chunk_meta))
+                    
+                    print(f"\n[FINAL CHUNK #{len(ret_docs)}]")
+                    print(f"Length: {len(chunk)}")
+                    print(f"Summary: {chunk_summary}")
+                    print(f"Metadata: {chunk_meta}")
+                    print("-" * 80)
 
                     if self.logger is not None:
                         self.logger.debug(msg=f"{len(ret_docs)}th chunk added (length: {len(chunk)}).", tag=self.NAME)
@@ -168,5 +259,10 @@ class LLMPoweredRecursiveSplitter(TextSplitter):
                     text = text[dropped_len:].strip()
                     chunk_summary = next_summary
                     chunks = self._base_splitter.split_text(text)
+            
+            print("\n" + "#" * 80)
+            print(f"# DOCUMENT {idx + 1} PROCESSING COMPLETE")
+            print(f"# Total chunks for this document: {len(ret_docs)}")
+            print("#" * 80 + "\n")
 
         return ret_docs

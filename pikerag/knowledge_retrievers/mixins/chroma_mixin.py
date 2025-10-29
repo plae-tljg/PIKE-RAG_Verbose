@@ -125,14 +125,19 @@ class ChromaMixin:
         if score_threshold is None:
             score_threshold = self.retrieve_score_threshold
 
+        # Perform similarity search
         infos: List[Tuple[Document, float]] = store.similarity_search_with_relevance_scores(
             query=query,
             k=retrieve_k,
             score_threshold=score_threshold,
         )
+        
+        print(f"[SIMILARITY_SEARCH] Retrieved {len(infos)} results from vector store")
 
         filtered_docs = [(doc, score) for doc, score in infos if score >= score_threshold]
         sorted_docs = sorted(filtered_docs, key=lambda x: x[1], reverse=True)
+        
+        print(f"[SIMILARITY_SEARCH] After filtering (threshold={score_threshold}): {len(sorted_docs)} documents")
 
         return sorted_docs
 

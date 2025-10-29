@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PikeRAG QA Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sidebar-section h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .question-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .question-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        .question-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .question-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .question-item h4 {
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .question-item p {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .message-content {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-width: 80%;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.system .message-content {
+            background: #f0f4ff;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .message.assistant .message-content {
+            background: #f8f9fa;
+        }
+
+        .step-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .step-header {
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-content {
+            padding: 1.5rem;
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .input-area {
+            border-top: 1px solid #e0e0e0;
+            padding: 1.5rem;
+            background: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+
+        .input-container button {
+            padding: 0.75rem 2rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .input-container button:hover {
+            background: #5568d3;
+        }
+
+        .input-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .config-modal.active {
+            display: flex;
+        }
+
+        .config-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .config-content h2 {
+            margin-bottom: 1.5rem;
+            color: #667eea;
+        }
+
+        .config-input {
+            margin-bottom: 1rem;
+        }
+
+        .config-input label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .config-input input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .config-input input:focus {
+            border-color: #667eea;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .close-btn {
+            margin-top: 1rem;
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #667eea;
+            background: white !important;
+            color: #667eea !important;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .close-btn:hover {
+            background: #f0f4ff !important;
+        }
+
+        .config-content .btn-primary {
+            background: #667eea !important;
+            color: white !important;
+            border: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔄 PikeRAG IRCoT Chat</h1>
+        <div class="header-buttons">
+            <button class="btn" onclick="showConfig()">⚙️ Config</button>
+            <button class="btn" onclick="rebuildVectorStore()">🔄 Rebuild DB</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>📋 Test Questions</h3>
+                <div id="questionList" class="question-list"></div>
+            </div>
+            <div class="sidebar-section" style="flex: 1;">
+                <h3>⚙️ Status</h3>
+                <div id="statusInfo">No config loaded</div>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <div class="input-container">
+                    <input type="text" id="questionInput" placeholder="Type your question or select from test questions..." disabled onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()" disabled id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div class="config-modal" id="configModal" onclick="event.target === this && hideConfig()">
+        <div class="config-content" onclick="event.stopPropagation()">
+            <h2>📋 Configuration</h2>
+            <div class="config-input">
+                <label>Config Path:</label>
+                <input type="text" id="configPathInput" value="examples/earthquakes/configs/ircot.yml">
+            </div>
+            <button class="btn btn-primary close-btn" onclick="loadConfig()">Load Config</button>
+            <button class="btn close-btn" style="margin-top: 0.5rem;" onclick="hideConfig()">Cancel</button>
+            <div id="configStatus" style="margin-top: 1rem;"></div>
+        </div>
+    </div>
+
+    <script>
+        let configLoaded = false;
+        let questions = [];
+        let selectedQuestionId = null;
+
+        function showConfig() {
+            document.getElementById('configModal').classList.add('active');
+        }
+
+        function hideConfig() {
+            document.getElementById('configModal').classList.remove('active');
+        }
+
+        async function loadConfig() {
+            const configPath = document.getElementById('configPathInput').value;
+            const statusDiv = document.getElementById('configStatus');
+            
+            statusDiv.innerHTML = '⏳ Loading...';
+            
+            try {
+                const response = await fetch('/load_config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({config_path: configPath})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = '✅ Config loaded!';
+                    configLoaded = true;
+                    await loadQuestions();
+                    document.getElementById('questionInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    document.getElementById('statusInfo').innerHTML = '✅ Config loaded and ready!';
+                    document.getElementById('statusInfo').style.color = '#10b981';
+                    hideConfig();
+                } else {
+                    statusDiv.innerHTML = `❌ Error: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/get_questions');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    questions = data.questions;
+                    displayQuestions();
+                }
+            } catch (error) {
+                console.error('Error loading questions:', error);
+            }
+        }
+
+        function displayQuestions() {
+            const container = document.getElementById('questionList');
+            container.innerHTML = questions.map((q, idx) => `
+                <div class="question-item" onclick="selectQuestion(${idx})" id="q-${idx}">
+                    <h4>Question ${idx + 1}</h4>
+                    <p>${q.question.substring(0, 100)}${q.question.length > 100 ? '...' : ''}</p>
+                </div>
+            `).join('');
+        }
+
+        function selectQuestion(id) {
+            selectedQuestionId = id;
+            
+            // Update active state
+            document.querySelectorAll('.question-item').forEach((el, idx) => {
+                if (idx === id) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+            
+            // Send the question
+            sendQuestionToChat(id);
+        }
+
+        function sendQuestionToChat(questionId) {
+            const qa = questions[questionId];
+            addMessage('user', `Question ${questionId + 1}: ${qa.question}`);
+            
+            // Process the question
+            processQuestion(questionId);
+        }
+
+        async function processQuestion(questionId) {
+            addMessage('system', 'Processing your question...');
+            
+            try {
+                const response = await fetch('/answer_question', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question_id: questionId})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayWorkflowSteps(data.debug_steps);
+                    
+                    // Show final answer if available
+                    if (data.final_output && data.final_output.answer) {
+                        addMessage('assistant', `Final Answer: ${data.final_output.answer}`);
+                    }
+                } else {
+                    addMessage('system', `Error: ${data.error}`);
+                }
+            } catch (error) {
+                addMessage('system', `Error: ${error.message}`);
+            }
+        }
+
+        function displayWorkflowSteps(steps) {
+            const stepCards = steps.map(step => {
+                let content = '';
+                let stepName = step.step;
+                
+                // Handle IRCoT rounds
+                if (step.step && step.step.startsWith('round_')) {
+                    stepName = `Round ${step.round}`;
+                    content = `
+                        <p><strong>Query:</strong> ${step.query}</p>
+                        <p><strong>Retrieved chunks:</strong> ${step.retrieved_chunks ? step.retrieved_chunks.length : 0}</p>
+                        <p><strong>Total references:</strong> ${step.total_references}</p>
+                        ${step.new_rationale ? `<p><strong>New rationale:</strong> ${step.new_rationale.substring(0, 200)}...</p>` : ''}
+                        ${step.final_answer ? `<p><strong>Final answer:</strong> ${step.final_answer}</p>` : ''}
+                        
+                        <details>
+                            <summary style="cursor: pointer; color: #667eea; margin-top: 0.5rem;">View Retrieved Chunks</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                ${step.retrieved_chunks ? step.retrieved_chunks.map((c, i) => `<div style="margin-bottom: 0.5rem;"><strong>${i+1}:</strong> ${c.substring(0, 200)}...</div>`).join('') : 'None'}
+                            </div>
+                        </details>
+                        
+                        <details style="margin-top: 0.5rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View Full Prompt</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.full_prompt || 'N/A'}</pre>
+                            </div>
+                        </details>
+                        
+                        <details style="margin-top: 0.5rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View LLM Response</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.llm_response || 'N/A'}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'final_answer') {
+                    stepName = 'Final Answer';
+                    content = `
+                        <p><strong>Total rounds:</strong> ${step.round}</p>
+                        <p><strong>Total references:</strong> ${step.total_references}</p>
+                        <p><strong>Final answer:</strong> ${step.final_answer}</p>
+                        
+                        <details>
+                            <summary style="cursor: pointer; color: #667eea; margin-top: 0.5rem;">View Full Prompt</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.full_prompt || 'N/A'}</pre>
+                            </div>
+                        </details>
+                        
+                        <details style="margin-top: 0.5rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View LLM Response</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.llm_response || 'N/A'}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'retrieval') {
+                    content = `
+                        <p><strong>Retrieved:</strong> ${step.retrieved_count} chunks</p>
+                        <details>
+                            <summary style="cursor: pointer; color: #667eea; margin-top: 0.5rem;">View Chunks</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                ${step.chunks ? step.chunks.map((c, i) => `<div style="margin-bottom: 0.5rem;"><strong>${i+1}:</strong> ${c}</div>`).join('') : 'None'}
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'prompt_formatting') {
+                    content = `
+                        <p><strong>Messages:</strong> ${step.num_messages}</p>
+                        <details>
+                            <summary style="cursor: pointer; color: #667eea; margin-top: 0.5rem;">View Prompt</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.full_prompt}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'llm_response') {
+                    content = `
+                        <details>
+                            <summary style="cursor: pointer; color: #667eea;">View Response</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.raw_response}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'parsing') {
+                    content = `
+                        <p><strong>Fields:</strong> ${step.extracted_fields.join(', ')}</p>
+                        <details>
+                            <summary style="cursor: pointer; color: #667eea; margin-top: 0.5rem;">View Parsed</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${JSON.stringify(step.parsed_output, null, 2)}</pre>
+                            </div>
+                        </details>
+                    `;
+                }
+                
+                const stepNames = {
+                    'retrieval': '🔍 Retrieval',
+                    'prompt_formatting': '✍️ Prompt',
+                    'llm_response': '🤖 LLM Response',
+                    'parsing': '📝 Parsing',
+                    'final_result': '✅ Final Result',
+                    'final_answer': '✅ Final Answer'
+                };
+                
+                const icon = step.step && step.step.startsWith('round_') ? '🔄' : 
+                            step.step === 'final_answer' ? '✅' :
+                            stepNames[step.step] ? stepNames[step.step].split(' ')[0] : '';
+                
+                return `
+                    <div class="step-card">
+                        <div class="step-header" onclick="toggleStep(this)">
+                            <span>${icon} ${stepName}</span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="step-content">${content}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            addMessage('assistant', stepCards);
+        }
+
+        function toggleStep(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.expand-icon');
+            
+            content.classList.toggle('active');
+            icon.classList.toggle('expanded');
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addMessage(role, content) {
+            const messagesDiv = document.getElementById('messages');
+            const message = document.createElement('div');
+            message.className = `message ${role}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            message.innerHTML = `
+                <div class="message-header">
+                    <span>${role.charAt(0).toUpperCase() + role.slice(1)}</span>
+                    <span>${timestamp}</span>
+                </div>
+                <div class="message-content">${content}</div>
+            `;
+            
+            messagesDiv.appendChild(message);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            
+            if (question) {
+                addMessage('user', question);
+                input.value = '';
+                addMessage('system', 'Processing your question...');
+                
+                // Call the custom question endpoint
+                try {
+                    const response = await fetch('/answer_custom_question', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({question: question})
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        displayWorkflowSteps(data.debug_steps);
+                        
+                        // Show final answer if available
+                        if (data.final_output && data.final_output.answer) {
+                            addMessage('assistant', `Final Answer: ${data.final_output.answer}`);
+                        }
+                    } else {
+                        addMessage('system', `Error: ${data.error}`);
+                    }
+                } catch (error) {
+                    addMessage('system', `Error: ${error.message}`);
+                }
+            }
+        }
+
+        async function rebuildVectorStore() {
+            addMessage('system', 'Rebuilding vector store... This may take a moment.');
+            
+            try {
+                const response = await fetch('/rebuild_vector_store', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addMessage('system', `✅ ${data.message}`);
+                } else {
+                    addMessage('system', `❌ Error: ${data.error}`);
+                }
+            } catch (error) {
+                addMessage('system', `❌ Error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -141,6 +141,18 @@ cython_debug/
 ## Specific setting for this repo
 ###################################
 .vscode/
-env_configs/
+
+# Keep env_configs folder for user setup (bypass errors)
+!env_configs/
+
+# Ignore data and logs directories
 data/
 logs/
+
+# But keep earthquake starter data for demos
+!data/earthquakes/
+!data/earthquakes/**
+!logs/earthquakes/
+!logs/earthquakes/ircot/
+!logs/earthquakes/ircot/earthquakes_ircot/
+!logs/earthquakes/ircot/earthquakes_ircot/chroma.sqlite3

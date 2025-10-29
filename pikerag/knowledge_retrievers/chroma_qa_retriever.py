@@ -2,6 +2,7 @@
 # Licensed under the MIT license.
 
 import math
+import os
 from functools import partial
 from typing import List, Tuple
 
@@ -80,12 +81,34 @@ class QaChunkRetriever(BaseQaRetriever, ChromaMixin):
         assert "vector_store" in self._retriever_config, "vector_store must be defined in retriever part!"
         vector_store_config = self._retriever_config["vector_store"]
 
+        collection_name = vector_store_config.get("collection_name", self.name)
+        persist_directory = vector_store_config.get("persist_directory", self._log_dir)
+        
+        print(f"\n[VECTOR_STORE_LOAD] Configuration:")
+        print(f"  Collection name: {collection_name}")
+        print(f"  Persist directory: {persist_directory}")
+        print(f"  Absolute persist path: {os.path.abspath(persist_directory)}")
+        print(f"  Directory exists: {os.path.exists(persist_directory)}")
+        
+        # Check for existing ChromaDB
+        chroma_db_path = os.path.join(persist_directory, "chroma.sqlite3")
+        print(f"  ChromaDB file: {chroma_db_path}")
+        print(f"  ChromaDB exists: {os.path.exists(chroma_db_path)}")
+        
+        if os.path.exists(persist_directory):
+            files = os.listdir(persist_directory)
+            print(f"  Files in persist dir: {files}")
+        
         self.vector_store: Chroma = load_vector_store_from_configs(
             vector_store_config=vector_store_config,
             embedding_config=vector_store_config.get("embedding_setting", {}),
-            collection_name=vector_store_config.get("collection_name", self.name),
-            persist_directory=vector_store_config.get("persist_directory", self._log_dir),
+            collection_name=collection_name,
+            persist_directory=persist_directory,
         )
+        
+        # Check collection count after load
+        count = self.vector_store._collection.count()
+        print(f"  Vector store loaded. Collection '{collection_name}' has {count} documents")
         return
 
     def _get_relevant_strings(self, doc_infos: List[Tuple[Document, float]], retrieve_id: str="") -> List[str]:
@@ -95,18 +118,44 @@ class QaChunkRetriever(BaseQaRetriever, ChromaMixin):
     def _get_doc_and_score_with_query(self, query: str, retrieve_id: str="", **kwargs) -> List[Tuple[Document, float]]:
         retrieve_k = kwargs.get("retrieve_k", self.retrieve_k)
         retrieve_score_threshold = kwargs.get("retrieve_score_threshold", self.retrieve_score_threshold)
-        return self._get_doc_with_query(query, self.vector_store, retrieve_k, retrieve_score_threshold)
+        
+        print(f"\n[RETRIEVER] Query: {query}")
+        print(f"[RETRIEVER] Searching for top-{retrieve_k} chunks with score threshold: {retrieve_score_threshold}")
+        
+        results = self._get_doc_with_query(query, self.vector_store, retrieve_k, retrieve_score_threshold)
+        
+        print(f"[RETRIEVER] Found {len(results)} matching chunks")
+        for i, (doc, score) in enumerate(results, 1):
+            print(f"  Chunk {i}: Score={score:.4f}, Length={len(doc.page_content)}, Metadata={doc.metadata}")
+        
+        return results
 
     def retrieve_contents_by_query(self, query: str, retrieve_id: str="", **kwargs) -> List[str]:
         chunk_infos = self._get_doc_and_score_with_query(query, retrieve_id, **kwargs)
-        return self._get_relevant_strings(chunk_infos, retrieve_id)
+        contents = self._get_relevant_strings(chunk_infos, retrieve_id)
+        
+        print("[RETRIEVER] Chunk contents (first 150 chars of each):")
+        for i, content in enumerate(contents, 1):
+            preview = content[:150] + "..." if len(content) > 150 else content
+            print(f"  Chunk {i}: {preview}")
+        
+        return contents
 
     def retrieve_contents(self, qa: BaseQaData, retrieve_id: str="") -> List[str]:
+        print(f"\n[RETRIEVER] Starting retrieval for {retrieve_id}")
+        print(f"[RETRIEVER] Question: {qa.question}")
+        
         queries: List[str] = self._query_parser(qa)
+        print(f"[RETRIEVER] Generated {len(queries)} query/queries:")
+        for i, q in enumerate(queries, 1):
+            print(f"  Query {i}: {q}")
+        
         retrieve_k = math.ceil(self.retrieve_k / len(queries))
+        print(f"[RETRIEVER] Will retrieve top-{retrieve_k} chunks per query")
 
         all_chunks: List[str] = []
-        for query in queries:
+        for query_idx, query in enumerate(queries, 1):
+            print(f"\n[RETRIEVER] Processing Query {query_idx}/{len(queries)}")
             chunks = self.retrieve_contents_by_query(query, retrieve_id, retrieve_k=retrieve_k)
             all_chunks.extend(chunks)
 
@@ -115,6 +164,10 @@ class QaChunkRetriever(BaseQaRetriever, ChromaMixin):
                 msg=f"{retrieve_id}: {len(all_chunks)} strings returned.",
                 tag=self.name,
             )
+            print(f"[RETRIEVER] Total {len(all_chunks)} chunks retrieved for {retrieve_id}")
+        else:
+            print(f"[RETRIEVER] WARNING: No chunks retrieved for {retrieve_id}")
+        
         return all_chunks
 
 

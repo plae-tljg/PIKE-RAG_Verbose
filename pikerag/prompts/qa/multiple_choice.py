@@ -208,6 +208,12 @@ class MultipleChoiceQaWithReferenceParser(MultipleChoiceQaParser):
         content, supplementary = super().encode(content, options, answer_mask_labels[0], **kwargs)
 
         references = kwargs.get("references", [])
+        print(f"\n[PROMPT_ENCODER] Encoding {len(references)} references into prompt")
+        for i, ref in enumerate(references[:3], 1):  # Show first 3 references
+            print(f"  Reference {i}: {ref[:100]}...")
+        if len(references) > 3:
+            print(f"  ... ({len(references) - 3} more references)")
+        
         supplementary["references_str"] = "\n".join([reference.strip() for reference in references])
 
         return content, supplementary

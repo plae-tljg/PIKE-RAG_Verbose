@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PikeRAG QA Workflow Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .config-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .config-section h2 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .config-input {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .config-input input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .question-list {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .question-item {
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .question-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .question-item h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .question-item .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .option {
+            padding: 0.5rem;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .step-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .step-card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .step-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .code-block pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-indicator.success { background: #10b981; }
+        .status-indicator.error { background: #ef4444; }
+        .status-indicator.loading { background: #f59e0b; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 PikeRAG QA Workflow Visualization</h1>
+        <p>See how RAG works step-by-step: Retrieval → Prompting → LLM → Parsing</p>
+    </div>
+
+    <div class="container">
+        <!-- Config Section -->
+        <div class="config-section">
+            <h2>📋 Configuration</h2>
+            <div class="config-input">
+                <input type="text" id="configPath" placeholder="Path to YAML config (e.g., examples/earthquakes/configs/qa.yml)" value="examples/earthquakes/configs/qa.yml">
+                <button class="btn btn-primary" onclick="loadConfig()">Load Config</button>
+            </div>
+            <div id="configStatus"></div>
+        </div>
+
+        <!-- Question List -->
+        <div class="question-list" id="questionList" style="display: none;">
+            <h2>❓ Questions</h2>
+            <div id="questionContainer"></div>
+        </div>
+
+        <!-- Workflow Steps -->
+        <div id="workflowSteps" style="display: none;">
+            <h2>⚙️ Workflow Steps</h2>
+            <div class="workflow-steps" id="stepsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+
+        async function loadConfig() {
+            const configPath = document.getElementById('configPath').value;
+            const statusDiv = document.getElementById('configStatus');
+            
+            statusDiv.innerHTML = '<div class="loading"></div> Loading...';
+            
+            try {
+                const response = await fetch('/load_config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({config_path: configPath})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = '<span class="status-indicator success"></span>Config loaded successfully!';
+                    await loadQuestions();
+                } else {
+                    statusDiv.innerHTML = `<span class="status-indicator error"></span>Error: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="status-indicator error"></span>Error: ${error.message}`;
+            }
+        }
+
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/get_questions');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    questions = data.questions;
+                    displayQuestions();
+                    document.getElementById('questionList').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading questions:', error);
+            }
+        }
+
+        function displayQuestions() {
+            const container = document.getElementById('questionContainer');
+            container.innerHTML = questions.map((q, idx) => `
+                <div class="question-item" onclick="answerQuestion(${idx})">
+                    <h3>Question ${idx + 1}</h3>
+                    <p>${q.question}</p>
+                    ${q.options ? `<div class="options">${Object.entries(q.options).map(([key, val]) => 
+                        `<div class="option"><strong>${key}:</strong> ${val}</div>`
+                    ).join('')}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function answerQuestion(questionId) {
+            const stepsContainer = document.getElementById('stepsContainer');
+            stepsContainer.innerHTML = '<div class="loading"></div> Processing...';
+            
+            try {
+                const response = await fetch('/answer_question', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question_id: questionId})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displaySteps(data.debug_steps);
+                    document.getElementById('workflowSteps').style.display = 'block';
+                } else {
+                    stepsContainer.innerHTML = `<div class="status-indicator error"></span>Error: ${data.error}`;
+                }
+            } catch (error) {
+                stepsContainer.innerHTML = `<div class="status-indicator error"></span>Error: ${error.message}`;
+            }
+        }
+
+        function displaySteps(steps) {
+            const container = document.getElementById('stepsContainer');
+            
+            const stepNames = {
+                'retrieval': '🔍 Retrieval',
+                'prompt_formatting': '✍️ Prompt Formatting',
+                'llm_response': '🤖 LLM Response',
+                'parsing': '📝 Parsing',
+                'final_result': '✅ Final Result'
+            };
+            
+            container.innerHTML = steps.map(step => {
+                let content = '';
+                
+                if (step.step === 'retrieval') {
+                    content = `
+                        <p><strong>Retrieved:</strong> ${step.retrieved_count} chunks</p>
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View Retrieved Chunks</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                ${step.chunks.map((c, i) => `<div style="margin-bottom: 0.5rem;"><strong>Chunk ${i+1}:</strong><br>${c}</div>`).join('')}
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'prompt_formatting') {
+                    content = `
+                        <p><strong>Messages:</strong> ${step.num_messages}</p>
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View Full Prompt</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.full_prompt}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'llm_response') {
+                    content = `
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View Raw Response</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${step.raw_response}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'parsing') {
+                    content = `
+                        <p><strong>Extracted Fields:</strong> ${step.extracted_fields.join(', ')}</p>
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: #667eea;">View Parsed Output</summary>
+                            <div class="code-block" style="margin-top: 0.5rem;">
+                                <pre>${JSON.stringify(step.parsed_output, null, 2)}</pre>
+                            </div>
+                        </details>
+                    `;
+                } else if (step.step === 'final_result') {
+                    content = `
+                        <p><strong>Answer:</strong> ${step.answer}</p>
+                        <p><strong>Mask:</strong> ${step.mask}</p>
+                        <p><strong>Correct Labels:</strong> ${step.correct_labels.join(', ')}</p>
+                    `;
+                }
+                
+                return `
+                    <div class="step-card">
+                        <h3><span class="step-badge">${stepNames[step.step] || step.step}</span></h3>
+                        ${content}
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
+

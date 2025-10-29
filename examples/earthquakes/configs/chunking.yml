@@ -1,0 +1,65 @@
+# Environment Variable Setting
+################################################################################
+dotenv_path: env_configs/.env
+
+
+# Logging Setting
+################################################################################
+log_root_dir: logs/EARTHQUAKES
+
+# experiment_name: would be used to create log_dir = log_root_dir/experiment_name/
+experiment_name: chunking
+
+
+# Input Document & Output Dir Setting
+################################################################################
+input_doc_setting:
+  doc_dir: data/earthquakes/contents
+
+output_doc_setting:
+  doc_dir: data/earthquakes/chunks
+
+
+# LLM Setting
+################################################################################
+llm_client:
+  module_path: pikerag.llm_client
+  # available class_name: AzureMetaLlamaClient, AzureOpenAIClient, HFMetaLlamaClient
+  class_name: QwenClient
+  args: {}
+
+  llm_config:
+    # available model name for AzureOpenAIClient: gpt-4, gpt-35-turbo
+    # available model name for AzureMetaLlamaClient: llama-2-7b-chat-22, llama-2-13b-chat-19, llama-2-70b-chat-19,
+    #                                                meta-llama-3-8b-instruct-4, meta-llama-3-70b-instruct-4
+    # available model name for HuggingFaceMetaLlamaClient: meta-llama/Meta-Llama-3-8B-Instruct, meta-llama/Meta-Llama-3-70B-Instruct
+    model: /home/fit/Downloads/Qwen2.5-7B-Instruct
+    temperature: 0
+    # enable max_new_tokens when using llama model, response seems truncated without it
+    # max_new_tokens: 1024
+
+  cache_config:
+    # location: will be joined with log_dir to generate the full path;
+    #   if set to null, the experiment_name would be used
+    location_prefix: null
+    auto_dump: True
+
+
+# Splitter Setting
+################################################################################
+chunking_protocol:
+  module_path: pikerag.prompts.chunking
+  chunk_summary: chunk_summary_protocol
+  chunk_summary_refinement: chunk_summary_refinement_protocol
+  chunk_resplit: chunk_resplit_protocol
+
+
+splitter:
+  module_path: pikerag.document_transformers
+  class_name: LLMPoweredRecursiveSplitter
+  args:
+    separators:
+      - "\n"
+    is_separator_regex: False
+    chunk_size: 512
+    chunk_overlap: 0

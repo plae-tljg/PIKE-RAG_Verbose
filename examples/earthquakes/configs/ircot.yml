@@ -1,0 +1,105 @@
+# Environment Variable Setting
+################################################################################
+dotenv_path: null
+
+
+# Logging Setting
+################################################################################
+log_root_dir: logs/earthquakes/ircot
+
+# experiment_name: would be used to create log_dir = log_root_dir/experiment_name/
+experiment_name: earthquakes_ircot
+
+# test_jsonl_filename: would be used to create test_jsonl_path = log_dir/test_jsonl_filename;
+#   if set to null, the experiment_name would be used
+test_jsonl_filename: null
+
+# Number of rounds you want to test. min, max, avg. accuracy will be reported if multiple rounds.
+test_rounds: 1
+
+
+# Workflow Setting
+################################################################################
+workflow:
+  module_path: pikerag.workflows.qa_ircot
+  class_name: QaIRCoTWorkflow
+  args:
+    max_num_rounds: 5
+
+
+# Testing Suite Setting
+################################################################################
+test_loading:
+  module: earthquakes.utils
+  name: load_open_qa_test_suite
+  args:
+    filepath: data/earthquakes/open_qa_test.jsonl
+
+
+# Prompt Setting
+################################################################################
+ircot_protocol:
+  module_path: pikerag.prompts.ircot
+  protocol_name: ircot_qa_protocol
+
+
+# LLM Setting
+################################################################################
+llm_client:
+  module_path: pikerag.llm_client
+  # available class_name: AzureMetaLlamaClient, AzureOpenAIClient, HFMetaLlamaClient, QwenClient
+  class_name: QwenClient
+  args:
+    # memory_mode: "persistent"  # Keep model in GPU (faster, uses more memory)
+    memory_mode: "unload_after_use"  # Unload after each use (slower, saves memory)
+
+  llm_config:
+    model: /home/lkm/Downloads/Qwen2.5-7B-Instruct
+    temperature: 0
+
+  cache_config:
+    # location_prefix: will be joined with log_dir to generate the full path;
+    #   if set to null, the experiment_name would be used
+    location_prefix: null
+    auto_dump: True
+
+
+# Retriever Setting
+################################################################################
+retriever:
+  module_path: pikerag.knowledge_retrievers
+  class_name: QaChunkRetriever
+  args:
+    retrieve_k: 4
+    retrieve_score_threshold: 0.2
+
+    # Query Setting
+    ############################################################################
+    retrieval_query:
+      module_path: pikerag.knowledge_retrievers.query_parsers
+      func_name: question_as_query
+
+    vector_store:
+      collection_name: earthquakes_book
+
+      id_document_loading:
+        module_path: earthquakes.utils
+        func_name: load_ids_and_chunks
+        args:
+          chunk_file_dir: data/earthquakes/chunks
+
+      embedding_setting:
+        args:
+          model_name: /home/lkm/Downloads/bge-m3
+          model_kwargs:
+            device: "cuda:0"
+          encode_kwargs:
+            normalize_embeddings: True
+
+
+# Evaluator Setting
+################################################################################
+evaluator:
+  metrics:
+    - ExactMatch
+    - F1

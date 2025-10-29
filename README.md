@@ -20,9 +20,16 @@ I manually created a database of earthquakes from ebook in [https://www.gutenber
 
 However note that if you directly copy the ebook may have problem (?), since many sentence are separated not by space but by newlines. (BTW, easy way to treat it is open gedit then replace `\n\n` by `{{lkm}}`, then replace `\n` by ` `, then replace `{{lkm}}` by `\n\n`)  
 
+BTW, my txt for different chapters isnt quite good for chunking, in that some chunks are just letters like `uds`, `]`, ... You may consider a manual editing so as to be better for chunking. I have that problem but then I use AI generated script to edit it to delete those chunks that are too small, so the chunk provided doesnt have that problem very visibly.  
+
 The sample output of chunking is in `log_test_chunk.txt`.  
 
 The sample output of qa workflow is in `log_test_output_qa`.  
+
+
+## Manual Generation of Chunking
+
+If you have a knowledge base which is too large for LLM processing, you may want manually creating the chunk files directly. You can checkout the formats easily from the script `create_manual_chunks.py`, just edit it to make chunks nad place to suitable directory.  
 
 ## try web form
 
@@ -71,3 +78,7 @@ In these webpage, rememer click load config first.
 3. I make some changes to the ircot workflow, you can see in commit since my small model of `Qwen2.5-7B` seems to answer directly without CoT and continuous retrievel of chunks. I modified the prompt so that it defaults to higher round of reasoning, change it if you dont like it.  
 
 PS. you can look at `docs/changed_verbose` to see many of my verbose experiemnt result, but they arr AI generated, not very structured.  
+
+## Some useful testing data
+
+My earthquakes data and those intermediates (like chunks, chroma-db, ...) are provided in this repository directly. In case it cannot be git pushed, you can checkout the `data_earthquakes_bak.zip` directly, it contains allmy intermediate data and initial documents for your easy start.  

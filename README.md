@@ -6,6 +6,15 @@ Go to [README_Original.md](README_Original.md) if you want to see the original p
 
 This is a project where I make different output of PIKE-RAG to be more verbose, so that readers can understand without being obstructed by those `importlib` which is impossiblt to be resolved by IDE.  
 
+
+## Some useful testing data
+
+My earthquakes data and those intermediates (like chunks, chroma-db, ...) are provided in this repository directly. In case it cannot be git pushed, you can checkout the `data_earthquakes_bak.zip` directly, it contains allmy intermediate data and initial documents for your easy start.  
+
+## Installing Requirements
+
+You can follow the original repo's `requirements.txt`, but you may have trouble somewhere like on `langchain` version which I have toruble resolving. You can view my `requirements_5060ti.txt` for those relevant packages' version.  
+
 ## Running in terminal
 
 ```bash
@@ -78,7 +87,3 @@ In these webpage, rememer click load config first.
 3. I make some changes to the ircot workflow, you can see in commit since my small model of `Qwen2.5-7B` seems to answer directly without CoT and continuous retrievel of chunks. I modified the prompt so that it defaults to higher round of reasoning, change it if you dont like it.  
 
 PS. you can look at `docs/changed_verbose` to see many of my verbose experiemnt result, but they arr AI generated, not very structured.  
-
-## Some useful testing data
-
-My earthquakes data and those intermediates (like chunks, chroma-db, ...) are provided in this repository directly. In case it cannot be git pushed, you can checkout the `data_earthquakes_bak.zip` directly, it contains allmy intermediate data and initial documents for your easy start.  
